@@ -1,6 +1,6 @@
 package com.zeta.miniproject2.Restaurant.Management.System.Model.Entities;
 
-import com.zeta.miniproject2.Restaurant.Management.System.Model.Enums.Category;
+import com.zeta.miniproject2.Restaurant.Management.System.Model.Enums.MenuCategory;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -29,5 +29,5 @@ public class MenuItem {
 
     @Column(name = "category", nullable = false, length = 100)
     @Enumerated(EnumType.STRING)
-    private Category category;
+    private MenuCategory category;
 }

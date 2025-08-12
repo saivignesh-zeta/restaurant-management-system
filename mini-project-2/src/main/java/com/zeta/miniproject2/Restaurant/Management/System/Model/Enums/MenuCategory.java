@@ -1,6 +1,6 @@
 package com.zeta.miniproject2.Restaurant.Management.System.Model.Enums;
 
-public enum Category {
+public enum MenuCategory {
     STARTER,
     MAIN_COURSE,
     DESSERT,

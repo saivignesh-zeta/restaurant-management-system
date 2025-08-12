@@ -1,5 +1,6 @@
 package com.zeta.miniproject2.Restaurant.Management.System.Model.Entities;
 
+import com.zeta.miniproject2.Restaurant.Management.System.Model.Enums.BillStatus;
 import com.zeta.miniproject2.Restaurant.Management.System.Model.Enums.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
@@ -24,8 +25,9 @@ public class Bill {
     @Column(name = "total_amount", nullable = false)
     private double totalAmount;
 
-    @Column(name = "is_paid", nullable = false)
-    private boolean isPaid;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "bill_status", nullable = false)
+    private BillStatus billStatus;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method")
