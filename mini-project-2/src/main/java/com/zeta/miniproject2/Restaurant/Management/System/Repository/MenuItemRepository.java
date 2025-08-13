@@ -10,9 +10,4 @@ import java.util.List;
 @Repository
 public interface MenuItemRepository extends JpaRepository<MenuItem, Integer> {
 
-    List<MenuItem> findByCategory(MenuCategory category);
-
-    List<MenuItem> findByNameContainingIgnoreCase(String keyword);
-
-    boolean existsByNameIgnoreCase(String name);
 }

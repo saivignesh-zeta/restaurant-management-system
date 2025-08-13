@@ -10,19 +10,5 @@ import java.util.List;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Integer> {
-
-    List<Order> findByCustomerId(Integer customerId);
-
-    List<Order> findByBookingId(Integer bookingId);
-
-    List<Order> findByStatus(OrderStatus status);
-
-    List<Order> findByCreatedAtAfter(LocalDateTime dateTime);
-
-    List<Order> findByStatusAndCreatedAtBetween(
-            OrderStatus status,
-            LocalDateTime startDate,
-            LocalDateTime endDate
-    );
 }
 

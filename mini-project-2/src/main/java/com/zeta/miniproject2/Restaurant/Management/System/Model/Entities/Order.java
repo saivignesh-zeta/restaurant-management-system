@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "orders")
@@ -20,11 +22,13 @@ public class Order {
     @Column(name = "order_id")
     private int orderId;
 
-    @Column(name = "table_id", nullable = false)
-    private int tableId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "table_id", nullable = false)
+    private RestaurantTable table;
 
-    @Column(name = "waiter_id", nullable = false)
-    private int waiterId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User waiter;
 
     @Column(name = "order_time", nullable = false)
     private LocalDateTime orderTime;
@@ -37,4 +41,6 @@ public class Order {
     @JoinColumn(name = "bill_id")
     private Bill bill;
 
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderItem> orderItems = new ArrayList<>();
 }
