@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +22,7 @@ public class CustomerController {
 
     private final CustomerService customerService;
 
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping
     public ResponseEntity<CustomerDTO> createCustomer(@RequestBody Customer customer) {
         log.info("API Request - Create customer: {}", customer);
@@ -30,6 +32,7 @@ public class CustomerController {
         );
     }
 
+    @PreAuthorize("hasRole('MANAGER')")
     @GetMapping
     public ResponseEntity<List<CustomerDTO>> getAllCustomers() {
         log.info("API Request - Get all customers");
@@ -41,6 +44,7 @@ public class CustomerController {
         );
     }
 
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('MANAGER')")
     @GetMapping("/{id}")
     public ResponseEntity<?> getCustomerById(@PathVariable Integer id) {
         log.info("API Request - Get customer ID: {}", id);
@@ -49,6 +53,7 @@ public class CustomerController {
         return ResponseEntity.ok(customer);
     }
 
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PutMapping("/{id}")
     public ResponseEntity<CustomerDTO> updateCustomer(@PathVariable Integer id, @RequestBody Customer customer) {
         log.info("API Request - Update customer ID: {}", id);
@@ -56,7 +61,7 @@ public class CustomerController {
                 CustomerMapper.toDTO(customerService.updateCustomer(id, customer))
         );
     }
-
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PatchMapping("/{id}")
     public ResponseEntity<CustomerDTO> patchCustomer(@PathVariable Integer id, @RequestBody CustomerDTO customerDTO) {
         log.info("API Request - Patch customer ID: {}", id);
@@ -68,7 +73,7 @@ public class CustomerController {
                 CustomerMapper.toDTO(customerService.patchCustomer(id, existing))
         );
     }
-
+    @PreAuthorize("hasRole('CUSTOMER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCustomer(@PathVariable Integer id) {
         log.info("API Request - Delete customer ID: {}", id);
