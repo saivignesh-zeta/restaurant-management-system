@@ -8,9 +8,9 @@ import java.util.List;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class OrderDTO {
-    private int orderId;
-    private int tableId;
-    private int waiterId;
+    private Integer orderId;
+    private Integer tableId;
+    private Integer waiterId;
     private LocalDateTime orderTime;
     private OrderStatus status;
     private List<OrderItemDTO> items;

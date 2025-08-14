@@ -4,6 +4,7 @@ import com.zeta.miniproject2.Restaurant.Management.System.Model.DTO.OrderDTO;
 import com.zeta.miniproject2.Restaurant.Management.System.Model.DTO.OrderItemDTO;
 import com.zeta.miniproject2.Restaurant.Management.System.Model.Entities.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -48,6 +49,7 @@ public class OrderMapper {
     }
 
     public static List<OrderItem> toOrderItems(List<OrderItemDTO> dtos, Order order, List<MenuItem> menuItems) {
+        if (dtos == null || dtos.isEmpty()) return new ArrayList<>();
         return dtos.stream()
                 .map(dto -> {
                     MenuItem menuItem = menuItems.stream()
@@ -61,7 +63,7 @@ public class OrderMapper {
                             .quantity(dto.getQuantity())
                             .build();
                 })
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
 }

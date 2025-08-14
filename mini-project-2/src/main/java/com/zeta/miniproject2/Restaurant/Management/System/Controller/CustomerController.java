@@ -46,9 +46,7 @@ public class CustomerController {
         log.info("API Request - Get customer ID: {}", id);
         Customer customer = customerService.getCustomerById(id);
         System.out.println(customer);
-        return ResponseEntity.ok(
-                customerService.getCustomerById(id)
-        );
+        return ResponseEntity.ok(customer);
     }
 
     @PutMapping("/{id}")

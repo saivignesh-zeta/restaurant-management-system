@@ -60,11 +60,9 @@ public class RestaurantTableController {
     @PatchMapping("/{id}")
     public ResponseEntity<RestaurantTableDTO> patchTable(@PathVariable Integer id, @RequestBody RestaurantTableDTO tableDTO) {
         log.info("API Request - Patch table ID: {}", id);
-        RestaurantTable existing = tableService.getTableById(id);
         RestaurantTable table = RestaurantTableMapper.toEntity(tableDTO);
-        existing = EntityUtil.copyNonNullProperties(table, existing);
         return ResponseEntity.ok(
-                RestaurantTableMapper.toDTO(tableService.patchTable(id, existing))
+                RestaurantTableMapper.toDTO(tableService.patchTable(id, table))
         );
     }
 

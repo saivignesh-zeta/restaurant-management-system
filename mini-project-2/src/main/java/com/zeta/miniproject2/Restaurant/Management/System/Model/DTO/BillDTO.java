@@ -9,7 +9,7 @@ import java.util.List;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class BillDTO {
-    private int billId;
+    private Integer billId;
     private double totalAmount;
     private BillStatus billStatus;
     private PaymentMethod paymentMethod;

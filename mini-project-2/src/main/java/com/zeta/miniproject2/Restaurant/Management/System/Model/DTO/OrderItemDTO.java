@@ -4,7 +4,7 @@ import lombok.*;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class OrderItemDTO {
-    private int menuItemId;
+    private Integer menuItemId;
     private String menuItemName;
     private int quantity;
 }

@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -62,13 +63,13 @@ public class OrderController {
         return ResponseEntity.ok(OrderMapper.toDTO(savedOrder));
     }
 
-    @PatchMapping("/{id}/partial")
+    @PatchMapping("/{id}")
     public ResponseEntity<OrderDTO> patchOrder(@PathVariable Integer id, @RequestBody OrderDTO orderDTO) {
 
         RestaurantTable table = null;
         User waiter = null;
-        List<MenuItem> menuItems = List.of(); // default to empty list
-        List<OrderItem> orderItems = List.of(); // default to empty list
+        List<MenuItem> menuItems = new ArrayList<>();
+        List<OrderItem> orderItems;
 
         if (orderDTO.getTableId() != 0) {
             table = restaurantTableService.getTableById(orderDTO.getTableId());
@@ -86,7 +87,9 @@ public class OrderController {
 
         Order order = new Order();
         orderItems = OrderMapper.toOrderItems(orderDTO.getItems(), order, menuItems);
-        order.setOrderItems(orderItems);
+        order.getOrderItems().clear();
+        order.getOrderItems().addAll(orderItems);
+
 
         Order finalOrder = OrderMapper.toEntity(orderDTO, table, waiter, orderItems);
 

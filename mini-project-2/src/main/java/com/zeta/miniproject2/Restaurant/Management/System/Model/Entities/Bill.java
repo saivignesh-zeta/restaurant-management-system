@@ -20,7 +20,7 @@ public class Bill {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "bill_id")
-    private int billId;
+    private Integer billId;
 
     @Column(name = "total_amount", nullable = false)
     private double totalAmount;

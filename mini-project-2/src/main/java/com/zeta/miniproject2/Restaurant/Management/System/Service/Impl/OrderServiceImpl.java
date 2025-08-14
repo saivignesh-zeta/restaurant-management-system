@@ -4,56 +4,76 @@ import com.zeta.miniproject2.Restaurant.Management.System.Exception.ResourceNotF
 import com.zeta.miniproject2.Restaurant.Management.System.Model.Entities.MenuItem;
 import com.zeta.miniproject2.Restaurant.Management.System.Model.Entities.Order;
 import com.zeta.miniproject2.Restaurant.Management.System.Model.Entities.OrderItem;
-import com.zeta.miniproject2.Restaurant.Management.System.Model.Enums.OrderStatus;
+import com.zeta.miniproject2.Restaurant.Management.System.Model.Entities.RestaurantTable;
+import com.zeta.miniproject2.Restaurant.Management.System.Model.Entities.User;
 import com.zeta.miniproject2.Restaurant.Management.System.Repository.MenuItemRepository;
 import com.zeta.miniproject2.Restaurant.Management.System.Repository.OrderItemRepository;
 import com.zeta.miniproject2.Restaurant.Management.System.Repository.OrderRepository;
-import com.zeta.miniproject2.Restaurant.Management.System.Service.OrderService;
-import com.zeta.miniproject2.Restaurant.Management.System.Util.EntityUtil;
+import com.zeta.miniproject2.Restaurant.Management.System.Repository.RestaurantTableRepository;
+import com.zeta.miniproject2.Restaurant.Management.System.Repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class OrderServiceImpl implements OrderService {
+public class OrderServiceImpl implements com.zeta.miniproject2.Restaurant.Management.System.Service.OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final MenuItemRepository menuItemRepository;
+    private final UserRepository userRepository;
+    private final RestaurantTableRepository tableRepository;
 
+    @Transactional
     @Override
-    public Order placeOrder(Order order) {
-        log.info("Placing new order: {}", order);
+    public Order placeOrder(Order inputOrder) {
+        // Resolve waiter
+        if (inputOrder.getWaiter() == null || inputOrder.getWaiter().getUserId() == null) {
+            throw new IllegalArgumentException("Waiter is required");
+        }
+        User waiter = userRepository.findById(inputOrder.getWaiter().getUserId())
+                .orElseThrow(() -> new EntityNotFoundException("Waiter not found: " + inputOrder.getWaiter().getUserId()));
+        inputOrder.setWaiter(waiter);
 
-        if (order.getStatus() == null) {
-            order.setStatus(OrderStatus.PLACED);
+        // Resolve table
+        if (inputOrder.getTable() == null || inputOrder.getTable().getTableId() == null) {
+            throw new IllegalArgumentException("Table is required");
+        }
+        RestaurantTable table = tableRepository.findById(inputOrder.getTable().getTableId())
+                .orElseThrow(() -> new EntityNotFoundException("Table not found: " + inputOrder.getTable().getTableId()));
+        inputOrder.setTable(table);
+
+        // Order time default
+        if (inputOrder.getOrderTime() == null) {
+            inputOrder.setOrderTime(LocalDateTime.now());
         }
 
-        Order savedOrder = orderRepository.save(order);
-
-        if (order.getOrderItems() != null && !order.getOrderItems().isEmpty()) {
-            for (OrderItem orderItem : order.getOrderItems()) {
-
-                if (orderItem.getMenuItem() != null && orderItem.getMenuItem().getItemId() != null) {
-                    MenuItem menuItem = menuItemRepository.findById(orderItem.getMenuItem().getItemId())
-                            .orElseThrow(() -> new ResourceNotFoundException(
-                                    "Menu item not found with ID: " + orderItem.getMenuItem().getItemId()));
-                    orderItem.setMenuItem(menuItem);
+        // Process items: resolve menu items and set back-reference
+        List<OrderItem> processedItems = new ArrayList<>();
+        if (inputOrder.getOrderItems() != null) {
+            for (OrderItem item : inputOrder.getOrderItems()) {
+                if (item.getMenuItem() == null || item.getMenuItem().getItemId() == null) {
+                    throw new IllegalArgumentException("OrderItem.menuItemId is required");
                 }
-
-                orderItem.setOrder(savedOrder);
+                MenuItem menuItem = menuItemRepository.findById(item.getMenuItem().getItemId())
+                        .orElseThrow(() -> new EntityNotFoundException("MenuItem not found with ID: " + item.getMenuItem().getItemId()));
+                item.setMenuItem(menuItem);
+                item.setOrder(inputOrder);
+                processedItems.add(item);
             }
-            orderItemRepository.saveAll(order.getOrderItems());
         }
+        inputOrder.setOrderItems(processedItems);
 
-        log.info("Order placed successfully with ID: {}", savedOrder.getOrderId());
-        return savedOrder;
+        return orderRepository.save(inputOrder);
     }
 
     @Override
@@ -69,35 +89,86 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Order updateOrder(Integer orderId, Order updatedOrder){
+    public Order updateOrder(Integer orderId, Order updatedOrder) {
         log.info("Fully updating order with ID: {}", orderId);
 
         Order existingOrder = getOrderById(orderId);
 
-        BeanUtils.copyProperties(updatedOrder, existingOrder, "orderId");
+        // Caution: BeanUtils will overwrite relationships.
+        // Keep orderId intact and let patch logic handle items/associations if needed.
+        BeanUtils.copyProperties(updatedOrder, existingOrder, "orderId", "orderItems", "table", "waiter");
+
+        // If full update should also update associations, resolve them safely:
+        if (updatedOrder.getTable() != null && updatedOrder.getTable().getTableId() != null) {
+            RestaurantTable managedTable = tableRepository.findById(updatedOrder.getTable().getTableId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Table not found: " + updatedOrder.getTable().getTableId()));
+            existingOrder.setTable(managedTable);
+        }
+        if (updatedOrder.getWaiter() != null && updatedOrder.getWaiter().getUserId() != null) {
+            User managedWaiter = userRepository.findById(updatedOrder.getWaiter().getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Waiter not found: " + updatedOrder.getWaiter().getUserId()));
+            existingOrder.setWaiter(managedWaiter);
+        }
+        if (updatedOrder.getOrderItems() != null) {
+            // Replace items safely respecting orphanRemoval
+            existingOrder.getOrderItems().clear();
+            for (OrderItem item : updatedOrder.getOrderItems()) {
+                if (item.getMenuItem() == null || item.getMenuItem().getItemId() == null) {
+                    throw new IllegalArgumentException("MenuItem ID is required for each OrderItem");
+                }
+                MenuItem managedMenu = menuItemRepository.findById(item.getMenuItem().getItemId())
+                        .orElseThrow(() -> new ResourceNotFoundException("MenuItem not found: " + item.getMenuItem().getItemId()));
+                item.setMenuItem(managedMenu);
+                item.setOrder(existingOrder);
+                existingOrder.getOrderItems().add(item);
+            }
+        }
 
         Order savedOrder = orderRepository.save(existingOrder);
-
         log.info("Order with ID {} successfully fully updated", orderId);
-
         return savedOrder;
     }
 
     @Override
-    public Order patchOrder(Integer orderId, Order updatedOrder) {
-        log.info("Updating order with ID: {}", orderId);
+    @Transactional
+    public Order patchOrder(Integer id, Order updatedOrder) {
+        Order existing = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
-        Order existingOrder = getOrderById(orderId);
+        if (updatedOrder.getTable() != null && updatedOrder.getTable().getTableId() != null) {
+            RestaurantTable managedTable = tableRepository.findById(updatedOrder.getTable().getTableId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Table not found: " + updatedOrder.getTable().getTableId()));
+            existing.setTable(managedTable);
+        }
+        if (updatedOrder.getWaiter() != null && updatedOrder.getWaiter().getUserId() != null) {
+            User managedWaiter = userRepository.findById(updatedOrder.getWaiter().getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Waiter not found: " + updatedOrder.getWaiter().getUserId()));
+            existing.setWaiter(managedWaiter);
+        }
+        if (updatedOrder.getStatus() != null) {
+            existing.setStatus(updatedOrder.getStatus());
+        }
+        if (updatedOrder.getOrderTime() != null) {
+            existing.setOrderTime(updatedOrder.getOrderTime());
+        }
 
-        existingOrder = EntityUtil.copyNonNullProperties(updatedOrder, existingOrder);
+        if (updatedOrder.getOrderItems() != null) {
+            // Modify existing collection in place (orphanRemoval-safe)
+            existing.getOrderItems().clear();
+            for (OrderItem item : updatedOrder.getOrderItems()) {
+                if (item.getMenuItem() == null || item.getMenuItem().getItemId() == null) {
+                    throw new IllegalArgumentException("MenuItem ID is required for each OrderItem");
+                }
+                MenuItem managedMenu = menuItemRepository.findById(item.getMenuItem().getItemId())
+                        .orElseThrow(() -> new ResourceNotFoundException("MenuItem not found: " + item.getMenuItem().getItemId()));
+                item.setMenuItem(managedMenu);
+                item.setOrder(existing);
+                existing.getOrderItems().add(item);
+            }
+        }
 
-        Order savedOrder = orderRepository.save(existingOrder);
-
-        log.info("Order with ID {} successfully updated", orderId);
-
-        return savedOrder;
+        return orderRepository.save(existing);
     }
-
 
     @Override
     public Order getOrderById(Integer orderId) {
