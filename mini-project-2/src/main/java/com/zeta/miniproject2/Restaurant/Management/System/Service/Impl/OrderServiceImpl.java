@@ -36,7 +36,7 @@ public class OrderServiceImpl implements com.zeta.miniproject2.Restaurant.Manage
     @Transactional
     @Override
     public Order placeOrder(Order inputOrder) {
-        // Resolve waiter
+
         if (inputOrder.getWaiter() == null || inputOrder.getWaiter().getUserId() == null) {
             throw new IllegalArgumentException("Waiter is required");
         }
@@ -44,7 +44,7 @@ public class OrderServiceImpl implements com.zeta.miniproject2.Restaurant.Manage
                 .orElseThrow(() -> new EntityNotFoundException("Waiter not found: " + inputOrder.getWaiter().getUserId()));
         inputOrder.setWaiter(waiter);
 
-        // Resolve table
+
         if (inputOrder.getTable() == null || inputOrder.getTable().getTableId() == null) {
             throw new IllegalArgumentException("Table is required");
         }
@@ -52,12 +52,12 @@ public class OrderServiceImpl implements com.zeta.miniproject2.Restaurant.Manage
                 .orElseThrow(() -> new EntityNotFoundException("Table not found: " + inputOrder.getTable().getTableId()));
         inputOrder.setTable(table);
 
-        // Order time default
+
         if (inputOrder.getOrderTime() == null) {
             inputOrder.setOrderTime(LocalDateTime.now());
         }
 
-        // Process items: resolve menu items and set back-reference
+
         List<OrderItem> processedItems = new ArrayList<>();
         if (inputOrder.getOrderItems() != null) {
             for (OrderItem item : inputOrder.getOrderItems()) {
@@ -94,11 +94,10 @@ public class OrderServiceImpl implements com.zeta.miniproject2.Restaurant.Manage
 
         Order existingOrder = getOrderById(orderId);
 
-        // Caution: BeanUtils will overwrite relationships.
-        // Keep orderId intact and let patch logic handle items/associations if needed.
+
         BeanUtils.copyProperties(updatedOrder, existingOrder, "orderId", "orderItems", "table", "waiter");
 
-        // If full update should also update associations, resolve them safely:
+
         if (updatedOrder.getTable() != null && updatedOrder.getTable().getTableId() != null) {
             RestaurantTable managedTable = tableRepository.findById(updatedOrder.getTable().getTableId())
                     .orElseThrow(() -> new ResourceNotFoundException("Table not found: " + updatedOrder.getTable().getTableId()));
@@ -110,7 +109,7 @@ public class OrderServiceImpl implements com.zeta.miniproject2.Restaurant.Manage
             existingOrder.setWaiter(managedWaiter);
         }
         if (updatedOrder.getOrderItems() != null) {
-            // Replace items safely respecting orphanRemoval
+
             existingOrder.getOrderItems().clear();
             for (OrderItem item : updatedOrder.getOrderItems()) {
                 if (item.getMenuItem() == null || item.getMenuItem().getItemId() == null) {
@@ -153,7 +152,7 @@ public class OrderServiceImpl implements com.zeta.miniproject2.Restaurant.Manage
         }
 
         if (updatedOrder.getOrderItems() != null) {
-            // Modify existing collection in place (orphanRemoval-safe)
+
             existing.getOrderItems().clear();
             for (OrderItem item : updatedOrder.getOrderItems()) {
                 if (item.getMenuItem() == null || item.getMenuItem().getItemId() == null) {

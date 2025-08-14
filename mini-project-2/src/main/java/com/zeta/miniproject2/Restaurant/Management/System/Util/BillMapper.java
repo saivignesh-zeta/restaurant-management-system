@@ -31,7 +31,7 @@ public class BillMapper {
                 .paymentMethod(dto.getPaymentMethod())
                 .createdTime(dto.getCreatedTime())
                 .paidTime(dto.getPaidTime())
-                .orders(null) // Skip setting orders during patch
+                .orders(null)
                 .build();
     }
 
